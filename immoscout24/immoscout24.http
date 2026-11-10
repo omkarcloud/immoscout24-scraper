@@ -1,0 +1,59 @@
+@baseUrl = http://127.0.0.1:6002
+# @baseUrl = https://immoscout24-scraper.omkar.cloud   (send API-Key)
+
+# Every example below answered 200 with data on 2026-11-07. The first
+# request per path is the canonical example (the publishing tools read it).
+
+# ========================================
+# LISTINGS
+# ========================================
+
+### Listing details (German expose id)
+GET {{baseUrl}}/immoscout24/listings/details?listing=164121861
+
+### Listing details (German expose link)
+GET {{baseUrl}}/immoscout24/listings/details?listing=https://www.immobilienscout24.de/expose/172444800
+
+### Listing details (Austrian expose id)
+GET {{baseUrl}}/immoscout24/listings/details?listing=6aedbe6fc9369bb8e16b8420
+
+### Search listings (place name)
+GET {{baseUrl}}/immoscout24/listings/search?query=Berlin
+
+### Search listings (district, filters, newest first)
+GET {{baseUrl}}/immoscout24/listings/search?query=Berlin+Mitte&max_price=900&features=balcony&sort=newest&page_size=50
+
+### Search listings (pasted search link)
+GET {{baseUrl}}/immoscout24/listings/search?query=https://www.immobilienscout24.de/Suche/de/bayern/muenchen/wohnung-mieten
+
+### Search listings (Austria, houses for sale)
+GET {{baseUrl}}/immoscout24/listings/search?query=Graz&country=at&type=house_buy&max_price=500000&sort=price_asc
+
+### Search listings by coordinates (Brandenburg Gate)
+GET {{baseUrl}}/immoscout24/listings/search_by_coordinates?latitude=52.5163&longitude=13.3777
+
+### Search listings by coordinates (houses for sale within 2 km)
+GET {{baseUrl}}/immoscout24/listings/search_by_coordinates?latitude=52.52&longitude=13.40&radius_km=2&type=house_buy
+
+### Count listings
+GET {{baseUrl}}/immoscout24/listings/count?query=Berlin
+
+### Count listings (Austria, with a price cap)
+GET {{baseUrl}}/immoscout24/listings/count?query=Wien&country=at&max_price=900
+
+# ========================================
+# LOCATIONS
+# ========================================
+
+### Search locations (Germany)
+GET {{baseUrl}}/immoscout24/locations/search?query=Berlin
+
+### Search locations (Austria)
+GET {{baseUrl}}/immoscout24/locations/search?query=Graz&country=at
+
+# ========================================
+# PROJECTS
+# ========================================
+
+### Project details (Momento Berlin)
+GET {{baseUrl}}/immoscout24/projects/details?project=143514

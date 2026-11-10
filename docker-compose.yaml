@@ -1,0 +1,10 @@
+services:
+  immoscout24-scraper:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      # Optional — ImmoScout24 answered every request from a plain server IP in our tests, so leave this unset.
+      # - IMMOSCOUT24_PROXY=http://user:pass@host:port
