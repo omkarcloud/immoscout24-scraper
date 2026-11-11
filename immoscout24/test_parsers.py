@@ -352,6 +352,45 @@ def test_de_expose_apartment_buy_parking():
     assert len(flat["links"]) == 5 and flat["documents"][0]["title"].startswith("Pandion Midtown")
 
 
+@pytest.mark.parametrize("raw,expected", [
+    ("A_PLUS", "A+"), ("A-plus", "A+"), ("A+", "A+"), ("d", "D"), ("H", "H"),
+    ("no_information", None), ("", None), (None, None), ("Z", None),
+])
+def test_energy_class_normalisation(raw, expected):
+    assert P._energy_class(raw) == expected
+
+
+def test_de_expose_energy_class_from_targeting_and_label_image():
+    # 2026-11-10: the class is an IMAGE attribute (…/energy-efficiency-labels/A-plus.png)
+    # plus obj_energyEfficiencyClass in the ad-targeting block, never a TEXT row
+    payload = {
+        "header": {"id": "169087370"},
+        "sections": [{"type": "ATTRIBUTE_LIST", "title": "Bausubstanz & Energieausweis", "attributes": [
+            {"type": "IMAGE", "label": "Energieeffizienzklasse:",
+             "url": "https://is24-search-static.s3-eu-west-1.amazonaws.com/mobile-feed/energy-efficiency-labels/A-plus.png"}]}],
+        "adTargetingParameters": {"obj_energyType": "energy_required"},
+    }
+    expose = P.parse_de_expose(payload, "169087370")
+    assert expose["energy"]["class"] == "A+"
+    assert expose["energy"]["certificate_type"] == "demand"
+    assert expose["attributes"]["building"]["Energieeffizienzklasse"] == "A+"
+    payload["adTargetingParameters"] = {"obj_energyEfficiencyClass": "D", "obj_energyType": "energy_consumption"}
+    payload["sections"] = []
+    expose = P.parse_de_expose(payload, "169087370")
+    assert expose["energy"]["class"] == "D" and expose["energy"]["certificate_type"] == "consumption"
+
+
+def test_at_search_price_reduction_is_parsed_from_text():
+    # 2026-11-10 getDataByURL: {"original": "295.000 €", "percent": "-5%"}
+    hit = {"exposeId": "6accae98f3f8fa22ba4249da", "primaryPrice": 280000,
+           "primaryPriceKeyFact": {"value": "280.000 €", "label": None},
+           "priceReductionKeyFact": {"original": "295.000 €", "percent": "-5%"},
+           "meta": {"estateType": "APARTMENT", "transferType": "BUY"}}
+    row = P._at_hit(hit)
+    assert row["price"]["reduction"] == {"original": 295000.0, "percent": -5.0}
+    assert P._at_hit({**hit, "priceReductionKeyFact": None})["price"]["reduction"] is None
+
+
 def test_de_expose_partial_payloads_never_crash():
     empty = P.parse_de_expose({}, "1")
     assert empty["id"] == "1" and empty["title"] is None and empty["phones"] == [] and empty["photos"] == []

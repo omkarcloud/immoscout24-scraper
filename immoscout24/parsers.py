@@ -334,7 +334,25 @@ def _attribute_dict(attributes):
             out[label] = True
         elif kind == "TEXT":
             out[label] = _clean(attr.get("text"))
+        elif kind == "IMAGE":
+            # the energy class is shown as a label image: …/energy-efficiency-labels/A-plus.png
+            match = _ENERGY_LABEL_RE.search(attr.get("url") or "")
+            if match:
+                out[label] = _energy_class(match.group(1))
     return out
+
+
+_ENERGY_LABEL_RE = re.compile(r"energy-efficiency-labels/([A-Za-z_+-]+)\.png")
+_ENERGY_TYPES = {"energy_required": "demand", "energy_consumption": "consumption"}
+
+
+def _energy_class(value):
+    """"A_PLUS" / "A-plus" / "A+" / "d" -> "A+" / "D"; anything else -> None."""
+    value = _no_information(value)
+    if not value:
+        return None
+    value = re.sub(r"[_-]?plus$", "+", value.strip(), flags=re.I).upper()
+    return value if re.fullmatch(r"[A-H]\+?", value) else None
 
 
 def _find(table, *labels):
@@ -640,8 +658,10 @@ def parse_de_expose(payload, listing_id):
             "assisted_living": _yes_no(adt.get("obj_assistedLiving")),
         },
         "energy": {
-            "class": _find(building, "Energieeffizienzklasse"),
+            "class": _energy_class(adt.get("obj_energyEfficiencyClass")) or _find(building, "Energieeffizienzklasse"),
             "certificate": _find(building, "Energieausweis", "Energieausweistyp"),
+            # demand (Bedarfsausweis) or consumption (Verbrauchsausweis) certificate
+            "certificate_type": _ENERGY_TYPES.get(adt.get("obj_energyType")),
             "consumption": _find(building, "Endenergieverbrauch", "Endenergiebedarf", "Energieverbrauchskennwert"),
             "carrier": _no_information(_find(building, "Wesentliche Energieträger")),
             "heating_type": _no_information(adt.get("obj_heatingType")) or _find(building, "Heizungsart"),
@@ -846,7 +866,9 @@ def _at_hit(hit):
             "label": _clean(price_fact.get("label")),
             "text": _clean(price_fact.get("value")),
             "per_m2": parse_de_number(sqm_fact.get("value")),
-            "reduction": {"original": _as_float(reduction.get("original")), "percent": _as_float(reduction.get("percent"))}
+            # the site prints both as text: {"original": "295.000 €", "percent": "-5%"}
+            "reduction": {"original": parse_de_number(reduction.get("original")),
+                          "percent": parse_de_number(reduction.get("percent"))}
             if reduction and (reduction.get("original") or reduction.get("percent")) else None,
         },
         "area_m2": _as_float(hit.get("primaryArea")),
